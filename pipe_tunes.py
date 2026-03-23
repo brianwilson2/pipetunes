@@ -1,3 +1,21 @@
+# pipe_tunes.py
+import os
+
+# ---------------------------
+# Headless-safe window setup
+# ---------------------------
+HEADLESS = os.environ.get("HEADLESS", "0") == "1"
+
+if not HEADLESS:
+    try:
+        from kivy.core.window import Window
+        Window.size = (1200, 800)
+    except Exception:
+        print("Warning: Window setup failed, continuing anyway")
+else:
+    print("Headless mode: skipping Window setup")
+
+
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.gridlayout import GridLayout
@@ -14,18 +32,6 @@ import sqlite3
 import import_csv  # your CSV import script
 import os
 
-# ---------------------------
-# Headless-safe setup
-# ---------------------------
-HEADLESS = os.environ.get("HEADLESS", "0") == "1"
-
-if not HEADLESS:
-    try:
-        Window.size = (1200, 800)
-    except Exception:
-        print("Warning: Window setup failed, continuing anyway")
-else:
-    print("Headless mode: skipping Window setup")
 
 # ---------------------------
 # DB constants
