@@ -13,8 +13,14 @@ import sqlite3
 import import_csv  # your CSV import script
 from kivy.uix.filechooser import FileChooserListView
 
+# Headless-safe Window setup
+try:
+    Window.size = (1200, 800)
+except Exception:
+    print("Headless mode: skipping Window setup")
+
 DB_NAME = "tunes.db"
-Window.size = (1200, 800)
+#Window.size = (1200, 800)
 
 # ---------------------------
 # UI Row
