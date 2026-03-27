@@ -1,76 +1,43 @@
-# pipe_tunes.py
+# pipetunes_wrapper.py
+import subprocess
 import os
+import json
 
-# ---------------------------
-# Headless-safe window setup
-# ---------------------------
-HEADLESS = os.environ.get("HEADLESS", "0") == "1"
+# Base dir: adjust depending on your folder structure
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-if not HEADLESS:
-    try:
-        from kivy.core.window import Window
-        Window.size = (1200, 800)
-    except Exception:
-        print("Warning: Window setup failed, continuing anyway")
-else:
-    print("Headless mode: skipping Window setup")
-
-
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.textinput import TextInput
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.uix.checkbox import CheckBox
-from kivy.uix.popup import Popup
-from kivy.clock import Clock
-from kivy.core.window import Window
-from kivy.uix.filechooser import FileChooserListView
-import sqlite3
-import import_csv  # your CSV import script
-import os
-
-
-# ---------------------------
-# DB constants
-# ---------------------------
-DB_NAME = "tunes.db"
-
-# ---------------------------
-# Backend-only functions
-# ---------------------------
-def run_pipe_tunes_backend():
+def run_pipetunes_snapshot():
     """
-    Run all non-GUI parts: CSV import, DB updates, etc.
-    Safe to call with HEADLESS=1.
+    Runs pipe_tunes.py in headless mode and returns a list of dicts:
+    [{"book": ..., "page": ..., "name": ...}, ...]
     """
-    print("Running backend PipeTunes tasks...")
-    # Example: process CSVs automatically if needed
-    # import_csv.run_import("some_default_file.csv")
-    # You can call any other backend-only routines here
+    script_path = os.path.join(BASE_DIR, "pipetunes", "pipe_tunes.py")
 
-# ---------------------------
-# UI Row (unchanged)
-# ---------------------------
-class TuneRow(BoxLayout):
-    # ... Keep the full TuneRow class as-is from your copy
-    # No changes here
-    pass
+    logs = []
 
-# ---------------------------
-# Main App (unchanged)
-# ---------------------------
-class PipeTunesApp(App):
-    # ... Keep all methods as-is from your copy
-    pass
+    # Run headless to output JSON lines
+    proc = subprocess.Popen(
+        ["python3", script_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        env={**os.environ, "HEADLESS": "1"}  # ensure HEADLESS mode
+    )
 
-# ---------------------------
-# Entry point
-# ---------------------------
-if __name__ == "__main__":
-    if HEADLESS:
-        run_pipe_tunes_backend()
-    else:
-        PipeTunesApp().run()
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            # Expect JSON dict per line
+            entry = json.loads(line)
+            if isinstance(entry, dict):
+                logs.append(entry)
+        except json.JSONDecodeError:
+            # fallback: comma-separated book,page,name
+            parts = line.split(",")
+            if len(parts) >= 3:
+                logs.append({"book": parts[0], "page": parts[1], "name": parts[2]})
+
+    proc.wait()
+    return logs
